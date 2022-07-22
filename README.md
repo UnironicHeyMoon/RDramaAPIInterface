@@ -51,11 +51,11 @@ Yep. Just replace "rdrama.net" with whatever site it is.
 
 probably because you are using https. try this:
 
-'''python
+```python
 
 rdrama = RDramaAPIInterface(TEST_AUTH_TOKEN, "rdrama.net", https=False)
 
-'''
+```
 
 ### Q. WTF dude, my code was working yesterday and it suddenly started breaking, I literally cannot cope with this
 
