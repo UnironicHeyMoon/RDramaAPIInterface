@@ -27,7 +27,7 @@ Once you request it, beg the world's largest rodent to approve it. If he is merc
 
 First, create an instance of the interface. For accessing rdrama.net, here's what you do...
 
-```
+```python
 from RDramaAPIInterface import RDramaAPIInterface
 
 rdrama = RDramaAPIInterface(AUTH_TOKEN, "rdrama.net")
@@ -35,7 +35,7 @@ rdrama = RDramaAPIInterface(AUTH_TOKEN, "rdrama.net")
 
 and then you can do whatever you want!! For example, send me hate mail like this
 
-```
+```python
 rdrama.send_message("HeyMoon", "I have had it up to here with your shitty api interface. Fuck you, fuck python, and fuck aevann for making this website.")
 ```
 
@@ -51,8 +51,10 @@ Yep. Just replace "rdrama.net" with whatever site it is.
 
 probably because you are using https. try this:
 
-'''
+'''python
+
 rdrama = RDramaAPIInterface(TEST_AUTH_TOKEN, "rdrama.net", https=False)
+
 '''
 
 ### Q. WTF dude, my code was working yesterday and it suddenly started breaking, I literally cannot cope with this
