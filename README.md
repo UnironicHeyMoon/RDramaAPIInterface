@@ -59,7 +59,7 @@ rdrama = RDramaAPIInterface(TEST_AUTH_TOKEN, "rdrama.net", https=False)
 
 ### Q. WTF dude, my code was working yesterday and it suddenly started breaking, I literally cannot cope with this
 
-aevann probably fucked around with the code again lmao. ask him what's going on. also, for real, don't be a douche like "ah ha idiot I found an issue in the code". you are an api, aevann is going to prioritize actual users of the site over bots.
+aevann probably fucked around with the code again lmao. ask him what's going on.
 
 ### Q. Uhm, HeyMoon, your code is broken
 
