@@ -45,24 +45,27 @@ class RDramaAPIInterface:
     '''
     Gets "all" comments.
     '''
-    def get_comments(self, number_of_pages=1, user=None):
+    def get_comments(self, number_of_pages=1, user=None, sort="new", upper_bound = 0, lower_bound = 0):
         if (user == None):
             url=f"{self.protocol}://{self.site}/comments"
         else:
             url=f"{self.protocol}://{self.site}/@{user}/comments"
+        
+        params = f"?sort={sort}&t=all&before={upper_bound}&after={lower_bound}"
+        url+=params
+        
         if number_of_pages == 1:
             return self.get(url)
         else:
             results = []
             for i_ in range(number_of_pages):
                 i = i_ + 1
-                full_url=f"{url}?page={i}&sort=new&t=all"
+                full_url = f"{url}&page={i}"
                 results += self.get(full_url)['data']
             return {
                 'data': results
             }
             
-
     '''
     Calls the notifications endpoint
     '''
@@ -83,6 +86,10 @@ class RDramaAPIInterface:
 
     def get_front_page(self):
         url=f"{self.protocol}://{self.site}"
+        return self.get(url)
+
+    def get_hole(self, hole: str):
+        url = f"{self.protocol}://{self.site}/h/{hole}"
         return self.get(url)
 
     def has_url_been_posted(self, the_url):
