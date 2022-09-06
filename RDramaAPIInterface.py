@@ -1,15 +1,21 @@
+import time
 import requests
 from bs4 import BeautifulSoup
 import traceback
 import backoff
+
+class TimeOutException(Exception):
+    pass
+
 '''
 Wrapper around the RDRama API
 '''
 class RDramaAPIInterface:
-    def __init__(self, authorization_token, site, https: bool = True) -> None:
+    def __init__(self, authorization_token, site, sleep : float, https: bool = True) -> None:
         self.headers={"Authorization": authorization_token}
         self.site = site
         self.protocol = "https" if https else "http"
+        self.sleep = sleep
 
     def make_post(self, title, submission_url, body):
         url=f"{self.protocol}://{self.site}/submit"
@@ -25,25 +31,32 @@ class RDramaAPIInterface:
     '''
     Replies to the comment with the given id.
     '''
-    def reply_to_comment(self,parent_fullname, parent_submission, message):
+    def reply_to_comment(self,parent_fullname, parent_submission, message, file=None):
         url=f"{self.protocol}://{self.site}/comment"
-        return self.post(url, data={
-            'parent_fullname':parent_fullname,
-            'submission': parent_submission,
-            "body": message
-            })
+        if file == None:
+            return self.post(url, data={
+                'parent_fullname':parent_fullname,
+                'submission': parent_submission,
+                "body": message
+                })
+        else:
+            return self.post(url, data={
+                'parent_fullname':parent_fullname,
+                'submission': parent_submission,
+                "body": message
+                }, files=file)
 
     '''
     Replies to the comment with the given id.
     '''
-    def reply_to_comment_easy(self,comment_id, parent_submission, message):
-        return self.reply_to_comment(f"t3_{comment_id}", parent_submission, message)
+    def reply_to_comment_easy(self,comment_id, parent_submission, message, file=None):
+        return self.reply_to_comment(f"c_{comment_id}", parent_submission, message, file=file)
 
     def reply_to_post(self, post_id, message):
-        return self.reply_to_comment(f"t2_{post_id}", post_id, message)
+        return self.reply_to_comment(f"p_{post_id}", post_id, message)
 
     '''
-    Gets "all" comments.
+    Gets "all" comments. TODO: Probably need to add pagination support if I want to actually use this
     '''
     def get_comments(self, number_of_pages=1, user=None, sort="new", upper_bound = 0, lower_bound = 0):
         if (user == None):
@@ -60,12 +73,13 @@ class RDramaAPIInterface:
             results = []
             for i_ in range(number_of_pages):
                 i = i_ + 1
-                full_url = f"{url}&page={i}"
+                full_url=f"{url}?page={i}"
                 results += self.get(full_url)['data']
             return {
                 'data': results
             }
             
+
     '''
     Calls the notifications endpoint
     '''
@@ -78,7 +92,7 @@ class RDramaAPIInterface:
         return self.post(url, data = {
             'parent_id' : message_id,
             'body': message
-        })
+        }, allowed_failures=[500]) #There is a bug (probably) with the site that causes 500 errors to be sent when doing this via json. TODO: Ask Aevann why
 
     def get_comment(self, id):
         url=f"{self.protocol}://{self.site}/comment/{id}"
@@ -86,10 +100,6 @@ class RDramaAPIInterface:
 
     def get_front_page(self):
         url=f"{self.protocol}://{self.site}"
-        return self.get(url)
-
-    def get_hole(self, hole: str):
-        url = f"{self.protocol}://{self.site}/h/{hole}"
         return self.get(url)
 
     def has_url_been_posted(self, the_url):
@@ -272,6 +282,7 @@ class RDramaAPIInterface:
             "user_id": notification['author']['id'],
             "id": notification["id"],
             "message": notification['body'],
+            "parent_comment_id": notification['parent_comment_id'] if notification['level'] != 1 else None,
             "post_id": notification['post_id']
         }
 
@@ -306,6 +317,9 @@ class RDramaAPIInterface:
                 elif notification['post_id'] == 0:
                     #Direct message
                     parsed_notification = self.parse_direct_message(notification)
+                elif notification['author_name'] == "HMSE":
+                    #comment reply
+                    parsed_notification = self.parse_comment_reply(notification)
                 else:
                     #comment mention
                     parsed_notification = self.parse_comment_mention(notification)
@@ -317,24 +331,35 @@ class RDramaAPIInterface:
             
         return to_return
 
-    @backoff.on_exception(backoff.expo, requests.exceptions.RequestException)
-    def get(self, url):
+    @backoff.on_exception(backoff.expo,
+                      requests.exceptions.RequestException)
+    def get(self, url, allowed_failures = []):
+        # print(f"[rdrama_api] sleeping for {self.sleep}")
+        # time.sleep(self.sleep)
+        # print(f"[rdrama_api] Awake")
         response = requests.get(url, headers=self.headers)
         print(f"GET {url} ({response.status_code})")
         if (response.status_code == 429):
             raise requests.exceptions.RequestException()
-        if (response.status_code != 200):
+        if (response.status_code != 200 and response.status_code not in allowed_failures):
             raise BaseException(f"GET {url} ({response.status_code}) {response.json()}")
         else:
             return response.json()
     
-    @backoff.on_exception(backoff.expo, requests.exceptions.RequestException)
-    def post(self, url, data):
-        response = requests.post(url, headers=self.headers, data=data)
+    @backoff.on_exception(backoff.expo,
+                      TimeOutException)
+    def post(self, url, data, allowed_failures = [], files = None):
+        # print(f"[rdrama_api] sleeping for {self.sleep}")
+        # time.sleep(self.sleep)
+        # print(f"[rdrama_api] Awake")
+        if files == None:
+            response = requests.post(url, headers=self.headers, data=data)
+        else:
+            response = requests.post(url, headers=self.headers, data=data, files=files)
         print(f"POST {url} ({response.status_code}) {data}")
         if (response.status_code == 429):
-            raise requests.exceptions.RequestException()
-        if (response.status_code != 200):
+            raise TimeOutException
+        if (response.status_code != 200  and response.status_code not in allowed_failures):
             raise BaseException(f"POST {url} ({response.status_code}) {data} => {response.json()}")
         else:
             return response.json()
