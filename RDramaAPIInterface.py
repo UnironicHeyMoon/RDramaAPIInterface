@@ -320,9 +320,6 @@ class RDramaAPIInterface:
                 elif notification['post_id'] == 0:
                     #Direct message
                     parsed_notification = self.parse_direct_message(notification)
-                elif notification['author_name'] == "HMSE":
-                    #comment reply
-                    parsed_notification = self.parse_comment_reply(notification)
                 else:
                     #comment mention
                     parsed_notification = self.parse_comment_mention(notification)
