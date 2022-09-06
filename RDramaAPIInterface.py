@@ -333,19 +333,19 @@ class RDramaAPIInterface:
 
     @backoff.on_exception(backoff.expo,
                       requests.exceptions.RequestException)
-    def get(self, url, allowed_failures = []):
+    def get(self, url):
         response = requests.get(url, headers=self.headers)
         print(f"GET {url} ({response.status_code})")
         if (response.status_code == 429):
             raise requests.exceptions.RequestException()
-        if (response.status_code != 200 and response.status_code not in allowed_failures):
+        if (response.status_code != 200):
             raise BaseException(f"GET {url} ({response.status_code}) {response.json()}")
         else:
             return response.json()
     
     @backoff.on_exception(backoff.expo,
                       TimeOutException)
-    def post(self, url, data, allowed_failures = [], files = None):
+    def post(self, url, data, files = None):
         if files == None:
             response = requests.post(url, headers=self.headers, data=data)
         else:
@@ -353,7 +353,7 @@ class RDramaAPIInterface:
         print(f"POST {url} ({response.status_code}) {data}")
         if (response.status_code == 429):
             raise TimeOutException
-        if (response.status_code != 200  and response.status_code not in allowed_failures):
+        if (response.status_code != 200):
             raise BaseException(f"POST {url} ({response.status_code}) {data} => {response.json()}")
         else:
             return response.json()
