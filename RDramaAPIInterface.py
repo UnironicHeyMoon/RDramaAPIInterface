@@ -1,7 +1,12 @@
+import time
 import requests
 from bs4 import BeautifulSoup
 import traceback
 import backoff
+
+class TimeOutException(Exception):
+    pass
+
 '''
 Wrapper around the RDRama API
 '''
@@ -25,22 +30,29 @@ class RDramaAPIInterface:
     '''
     Replies to the comment with the given id.
     '''
-    def reply_to_comment(self,parent_fullname, parent_submission, message):
+    def reply_to_comment(self,parent_fullname, parent_submission, message, file=None):
         url=f"{self.protocol}://{self.site}/comment"
-        return self.post(url, data={
-            'parent_fullname':parent_fullname,
-            'submission': parent_submission,
-            "body": message
-            })
+        if file == None:
+            return self.post(url, data={
+                'parent_fullname':parent_fullname,
+                'submission': parent_submission,
+                "body": message
+                })
+        else:
+            return self.post(url, data={
+                'parent_fullname':parent_fullname,
+                'submission': parent_submission,
+                "body": message
+                }, files=file)
 
     '''
     Replies to the comment with the given id.
     '''
-    def reply_to_comment_easy(self,comment_id, parent_submission, message):
-        return self.reply_to_comment(f"t3_{comment_id}", parent_submission, message)
+    def reply_to_comment_easy(self,comment_id, parent_submission, message, file=None):
+        return self.reply_to_comment(f"c_{comment_id}", parent_submission, message, file=file)
 
     def reply_to_post(self, post_id, message):
-        return self.reply_to_comment(f"t2_{post_id}", post_id, message)
+        return self.reply_to_comment(f"p_{post_id}", post_id, message)
 
     '''
     Gets "all" comments.
@@ -60,12 +72,13 @@ class RDramaAPIInterface:
             results = []
             for i_ in range(number_of_pages):
                 i = i_ + 1
-                full_url = f"{url}&page={i}"
+                full_url=f"{url}?page={i}"
                 results += self.get(full_url)['data']
             return {
                 'data': results
             }
             
+
     '''
     Calls the notifications endpoint
     '''
@@ -73,6 +86,10 @@ class RDramaAPIInterface:
         url=f"{self.protocol}://{self.site}/notifications?page={page}"
         return self.get(url)
 
+    def get_hole(self, hole: str):
+        url = f"{self.protocol}://{self.site}/h/{hole}"
+        return self.get(url)
+    
     def reply_to_direct_message(self, message_id : int, message : str):
         url=f"{self.protocol}://{self.site}/reply"
         return self.post(url, data = {
@@ -86,10 +103,6 @@ class RDramaAPIInterface:
 
     def get_front_page(self):
         url=f"{self.protocol}://{self.site}"
-        return self.get(url)
-
-    def get_hole(self, hole: str):
-        url = f"{self.protocol}://{self.site}/h/{hole}"
         return self.get(url)
 
     def has_url_been_posted(self, the_url):
@@ -272,6 +285,7 @@ class RDramaAPIInterface:
             "user_id": notification['author']['id'],
             "id": notification["id"],
             "message": notification['body'],
+            "parent_comment_id": notification['parent_comment_id'] if notification['level'] != 1 else None,
             "post_id": notification['post_id']
         }
 
@@ -317,7 +331,8 @@ class RDramaAPIInterface:
             
         return to_return
 
-    @backoff.on_exception(backoff.expo, requests.exceptions.RequestException)
+    @backoff.on_exception(backoff.expo,
+                      requests.exceptions.RequestException)
     def get(self, url):
         response = requests.get(url, headers=self.headers)
         print(f"GET {url} ({response.status_code})")
@@ -328,12 +343,16 @@ class RDramaAPIInterface:
         else:
             return response.json()
     
-    @backoff.on_exception(backoff.expo, requests.exceptions.RequestException)
-    def post(self, url, data):
-        response = requests.post(url, headers=self.headers, data=data)
+    @backoff.on_exception(backoff.expo,
+                      TimeOutException)
+    def post(self, url, data, files = None):
+        if files == None:
+            response = requests.post(url, headers=self.headers, data=data)
+        else:
+            response = requests.post(url, headers=self.headers, data=data, files=files)
         print(f"POST {url} ({response.status_code}) {data}")
         if (response.status_code == 429):
-            raise requests.exceptions.RequestException()
+            raise TimeOutException
         if (response.status_code != 200):
             raise BaseException(f"POST {url} ({response.status_code}) {data} => {response.json()}")
         else:
