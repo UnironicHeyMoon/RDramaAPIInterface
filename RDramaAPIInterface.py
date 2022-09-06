@@ -95,7 +95,7 @@ class RDramaAPIInterface:
         return self.post(url, data = {
             'parent_id' : message_id,
             'body': message
-        }, allowed_failures=[500])
+        })
 
     def get_comment(self, id):
         url=f"{self.protocol}://{self.site}/comment/{id}"
