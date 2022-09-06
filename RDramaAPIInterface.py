@@ -86,6 +86,10 @@ class RDramaAPIInterface:
         url=f"{self.protocol}://{self.site}/notifications?page={page}"
         return self.get(url)
 
+    def get_hole(self, hole: str):
+        url = f"{self.protocol}://{self.site}/h/{hole}"
+        return self.get(url)
+    
     def reply_to_direct_message(self, message_id : int, message : str):
         url=f"{self.protocol}://{self.site}/reply"
         return self.post(url, data = {
