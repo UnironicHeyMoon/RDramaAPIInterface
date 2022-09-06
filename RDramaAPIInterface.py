@@ -55,7 +55,7 @@ class RDramaAPIInterface:
         return self.reply_to_comment(f"p_{post_id}", post_id, message)
 
     '''
-    Gets "all" comments. TODO: Probably need to add pagination support if I want to actually use this
+    Gets "all" comments.
     '''
     def get_comments(self, number_of_pages=1, user=None, sort="new", upper_bound = 0, lower_bound = 0):
         if (user == None):
@@ -91,7 +91,7 @@ class RDramaAPIInterface:
         return self.post(url, data = {
             'parent_id' : message_id,
             'body': message
-        }, allowed_failures=[500]) #There is a bug (probably) with the site that causes 500 errors to be sent when doing this via json. TODO: Ask Aevann why
+        }, allowed_failures=[500])
 
     def get_comment(self, id):
         url=f"{self.protocol}://{self.site}/comment/{id}"
