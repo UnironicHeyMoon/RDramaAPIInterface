@@ -11,11 +11,10 @@ class TimeOutException(Exception):
 Wrapper around the RDRama API
 '''
 class RDramaAPIInterface:
-    def __init__(self, authorization_token, site, sleep : float, https: bool = True) -> None:
+    def __init__(self, authorization_token, site, https: bool = True) -> None:
         self.headers={"Authorization": authorization_token}
         self.site = site
         self.protocol = "https" if https else "http"
-        self.sleep = sleep
 
     def make_post(self, title, submission_url, body):
         url=f"{self.protocol}://{self.site}/submit"
@@ -334,9 +333,6 @@ class RDramaAPIInterface:
     @backoff.on_exception(backoff.expo,
                       requests.exceptions.RequestException)
     def get(self, url, allowed_failures = []):
-        # print(f"[rdrama_api] sleeping for {self.sleep}")
-        # time.sleep(self.sleep)
-        # print(f"[rdrama_api] Awake")
         response = requests.get(url, headers=self.headers)
         print(f"GET {url} ({response.status_code})")
         if (response.status_code == 429):
@@ -349,9 +345,6 @@ class RDramaAPIInterface:
     @backoff.on_exception(backoff.expo,
                       TimeOutException)
     def post(self, url, data, allowed_failures = [], files = None):
-        # print(f"[rdrama_api] sleeping for {self.sleep}")
-        # time.sleep(self.sleep)
-        # print(f"[rdrama_api] Awake")
         if files == None:
             response = requests.post(url, headers=self.headers, data=data)
         else:
